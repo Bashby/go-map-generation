@@ -1,0 +1,6 @@
+hash: 6197516aa6206eb2da739437af78c41c7e61fbd9387097aede982e2b6c7c20c2
+updated: 2017-06-22T22:22:19.7464934-05:00
+imports:
+- name: github.com/ojrac/opensimplex-go
+  version: c0d2b8b324684d1e69e72eaf01f69ff700e3396a
+testImports: []

@@ -20,3 +20,10 @@
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+### Glide Go Package Manager ###
+vendor/*
+
+### Bashby Custom Edits ###
+*.png
+debug

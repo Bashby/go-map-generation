@@ -1,0 +1,9 @@
+package: bitbucket.org/ashbyb/go-map-generation
+homepage: ehh.io
+license: UNLICENSED
+owners:
+- name: Brendan Ashby
+  email: brendanevansashby@gmail.com
+  homepage: http://brendanashby.com
+import:
+- package: github.com/ojrac/opensimplex-go
