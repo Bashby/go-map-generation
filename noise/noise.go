@@ -104,15 +104,18 @@ import (
 
 type FBMNoiseGenerator2D struct {
 	Generator          *noisey.Scale2D // the interface to generate basic noise
+	Redistributed      bool
 	RedistributeFactor float64
+	Terraced           bool
+	TerraceFactor      float64
 }
 
-func NewFBMNoiseGenerator2D(octaveCount int, persistence float64, lacunarity float64, frequency float64, scale float64, bias float64, min float64, max float64, redistributeFactor float64) *FBMNoiseGenerator2D {
+func NewFBMNoiseGenerator2D(octaveCount int, persistence float64, lacunarity float64, frequency float64, scale float64, bias float64, min float64, max float64, isRedistributed bool, redistributeFactor float64, isTerraced bool, terraceFactor float64) *FBMNoiseGenerator2D {
 	randGen := rand.New(rand.NewSource(rand.Int63()))
 	nGen := noisey.NewOpenSimplexGenerator(randGen)
 	fbm := noisey.NewFBMGenerator2D(&nGen, octaveCount, persistence, lacunarity, frequency)
 	sFbm := noisey.NewScale2D(&fbm, scale, bias, min, max)
-	return &FBMNoiseGenerator2D{&sFbm, redistributeFactor}
+	return &FBMNoiseGenerator2D{&sFbm, isRedistributed, redistributeFactor, isTerraced, terraceFactor}
 }
 
 // BuildNoiseMatrix Builds a 2d matrix of given size filled with simplex noise and Fractal Brownian Motion
@@ -128,7 +131,16 @@ func (n *FBMNoiseGenerator2D) BuildNoiseMatrix(w int, h int, min float64, max fl
 			noise := n.Generator.Get2D(float64(x), float64(y))
 
 			// Redistribute output
-			noise = math.Pow(noise, n.RedistributeFactor)
+			if n.Redistributed {
+				noise = math.Pow(noise, n.RedistributeFactor)
+			}
+
+			// Terrace output
+			if n.Terraced {
+				noise = float64(RoundToInt(noise*n.TerraceFactor)) / n.TerraceFactor
+			} else {
+
+			}
 
 			// Normalize noise [0.0, 1.0] to requested range [min, max]
 			noise = (max-min)*noise + min
@@ -140,4 +152,12 @@ func (n *FBMNoiseGenerator2D) BuildNoiseMatrix(w int, h int, min float64, max fl
 	// fmt.Println(data)
 
 	return data
+}
+
+// RoundToInt8 rounds 64-bit floats into integer numbers
+func RoundToInt(a float64) int {
+	if a < 0 {
+		return int(a - 0.5)
+	}
+	return int(a + 0.5)
 }

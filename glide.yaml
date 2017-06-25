@@ -9,3 +9,5 @@ import:
 - package: github.com/ojrac/opensimplex-go
 - package: github.com/tbogdala/noisey
   version: ^1.0.0
+- package: github.com/gorilla/websocket
+  version: ^1.2.0
