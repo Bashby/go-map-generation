@@ -7,3 +7,5 @@ owners:
   homepage: http://brendanashby.com
 import:
 - package: github.com/ojrac/opensimplex-go
+- package: github.com/tbogdala/noisey
+  version: ^1.0.0

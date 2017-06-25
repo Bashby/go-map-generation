@@ -1,6 +1,8 @@
-hash: 6197516aa6206eb2da739437af78c41c7e61fbd9387097aede982e2b6c7c20c2
-updated: 2017-06-22T22:22:19.7464934-05:00
+hash: 9cadb17f35784977b606ab63be4216ebfaf746ff98ea06718a583532e6594b66
+updated: 2017-06-24T09:57:03.766252-05:00
 imports:
 - name: github.com/ojrac/opensimplex-go
   version: c0d2b8b324684d1e69e72eaf01f69ff700e3396a
+- name: github.com/tbogdala/noisey
+  version: 0f5c99971ea9f7b689747f2844437ce59fc184a5
 testImports: []

@@ -13,16 +13,16 @@ import (
 
 func Generate(w int, h int) {
 	// Generate Noise
-	noiseGenerator := noise.NewFBMNoiseGenerator(16, .007, 1.0, 2.0, 0.5)
-	elevationNoise := noiseGenerator.BuildNoiseMatrix(w, h, 0, 255)
-	noiseGenerator.ReSeed()
-	moistureNoise := noiseGenerator.BuildNoiseMatrix(w, h, 0, 255)
+	noiseGeneratorA := noise.NewFBMNoiseGenerator2D(16, 0.5, 2.0, 0.007, 0.5, 0.5, 0.0, 1.0, 4.0)
+	noiseGeneratorB := noise.NewFBMNoiseGenerator2D(16, 0.5, 2.0, 0.007, 0.5, 0.5, 0.0, 1.0, 1.0)
+	elevationNoise := noiseGeneratorA.BuildNoiseMatrix(w, h, 0.0, 255.0)
+	moistureNoise := noiseGeneratorB.BuildNoiseMatrix(w, h, 0.0, 255.0)
 
 	// Create an image from target size
 	img := image.NewRGBA(image.Rect(0, 0, w*2, h*2))
 
 	// Load in biome data
-	reader, err := os.Open("world/biomes.v2.png")
+	reader, err := os.Open("world/biomes.v3.png")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func Generate(w int, h int) {
 			img.Set(i, j, biome)
 			img.Set(i, j+h, color.RGBA{uint8(elevation), uint8(elevation), uint8(elevation), 255})
 			img.Set(i+w, j+h, color.RGBA{uint8(moisture), uint8(moisture), uint8(moisture), 255})
-			// fmt.Println(elevation, moisture)
+			// fmt.Println("M: ", moisture, "E: ", elevation, "C: ", biome)
 			// Debug Biome
 			img.Set(w+moisture+debugOffset, 255-elevation+debugOffset, color.White)
 		}
@@ -69,7 +69,15 @@ func Generate(w int, h int) {
 }
 
 func DetermineBiome(biomes image.Image, elevation int, moisture int) color.Color {
-	return biomes.At(moisture, elevation)
+	y := biomes.Bounds().Max.Y - elevation - 1
+	if y < 0 {
+		y = 0
+	}
+	x := moisture
+	if x > biomes.Bounds().Max.X {
+		x = biomes.Bounds().Max.X
+	}
+	return biomes.At(x, y)
 }
 
 func min(x, y int) uint8 {
