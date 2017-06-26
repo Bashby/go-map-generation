@@ -1,6 +1,10 @@
-hash: 03a6041f6bf320116dd039d11d83c782ce0e3b6b910e1ae0938072e60350923d
-updated: 2017-06-25T17:25:43.8229745-05:00
+hash: d999bb7b8b40f7cd1e5f3a1c7f04a3189f975e003120ba73ece5342304612531
+updated: 2017-06-25T21:48:53.3497014-05:00
 imports:
+- name: github.com/golang/protobuf
+  version: 6a1fa9404c0aebf36c879bc50152edcc953910d2
+  subpackages:
+  - protoc-gen-go
 - name: github.com/gorilla/websocket
   version: ea4d1f681babbce9545c9c5f3d5194a789c89f5b
 - name: github.com/ojrac/opensimplex-go
