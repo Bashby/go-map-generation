@@ -26,4 +26,5 @@
 
 ### Bashby Custom Edits ###
 *.png
+!/world/*.png
 debug
