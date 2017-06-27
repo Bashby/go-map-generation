@@ -1,9 +1,5 @@
 package websocket
 
-import (
-	"fmt"
-)
-
 type Hub struct {
 	// Client set
 	clients map[*Client]bool
@@ -38,9 +34,9 @@ func (h *Hub) run() {
 				delete(h.clients, client)
 				close(client.outbound)
 			}
-		case message := <-h.inbound:
-			// TODO: Handle message, send to clients
-			fmt.Println("Saw inbound message.")
+			// case message := <-h.inbound:
+			// 	// TODO: Handle message, send to clients
+			// 	fmt.Println("Saw inbound message.")
 		}
 	}
 }
