@@ -1,19 +1,7 @@
 syntax = "proto3";
-package websocket;
+package protobuf;
 
 message Message {
-  // ENUM Message types from peer
-  enum Type {
-    NOOP = 0;
-    MOVE = 1;
-    ATTACK = 2;
-    BUILD = 3;
-    SLEEP = 4;
-  }
-
-  // Message type
-  Type type = 1;
-
   // Message payload
   oneof payload {
     Move move = 10;

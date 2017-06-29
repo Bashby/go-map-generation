@@ -1,5 +1,7 @@
 package websocket
 
+import "bitbucket.org/ashbyb/go-map-generation/protobuf"
+
 type Hub struct {
 	// Client set
 	clients map[*Client]bool
@@ -34,9 +36,8 @@ func (h *Hub) run() {
 				delete(h.clients, client)
 				close(client.outbound)
 			}
-			// case message := <-h.inbound:
-			// 	// TODO: Handle message, send to clients
-			// 	fmt.Println("Saw inbound message.")
+		case message := <-h.inbound:
+			go protobuf.Decode(message)
 		}
 	}
 }
