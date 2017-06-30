@@ -14,26 +14,23 @@ import (
 
 // Constants
 const (
-	// Time allowed to write a message to the peer.
+	// Time allowed to write a message to the peer
 	writeWait = 10 * time.Second
 
-	// Time allowed to read the next pong message from the peer.
+	// Time allowed to read the next pong message from the peer
 	pongWait = 60 * time.Second
 
-	// Send pings to peer with this period. Must be less than pongWait.
+	// Send pings to peer with this period. Must be less than pongWait
 	pingPeriod = (pongWait * 9) / 10
 
-	// Maximum message size allowed from peer.
+	// Maximum message size allowed from peer
 	maxMessageSize = 512
 
-	// Size of a message header in bytes
-	messageHeaderSize = 2
-)
+	// Size of a packed-message header, in bytes
+	packedMessageHeaderSize = 2
 
-// Package Globals
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
+	// Outbound message channel buffer size
+	outboundMessageBuffer = 256
 )
 
 var upgrader = websocket.Upgrader{
@@ -41,6 +38,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+// ClientMessage Structure to associate a client with a message
 type ClientMessage struct {
 	// The Client sending the message
 	client *Client
@@ -68,7 +66,7 @@ func handleWebsocketRequest(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, outbound: make(chan []byte, 256)}
+	client := &Client{hub: hub, conn: conn, outbound: make(chan []byte, outboundMessageBuffer)}
 	client.hub.register <- client
 
 	// Start client message handler routines
@@ -143,16 +141,16 @@ func (c *Client) inboundHandler() {
 		offset := 0
 		for offset < len(message) {
 			// Determine location
-			msglen := int(binary.BigEndian.Uint16(message[offset : offset+messageHeaderSize]))
+			msglen := int(binary.BigEndian.Uint16(message[offset : offset+packedMessageHeaderSize]))
 
 			// Extract
-			payload := message[offset+messageHeaderSize : offset+messageHeaderSize+msglen]
+			payload := message[offset+packedMessageHeaderSize : offset+packedMessageHeaderSize+msglen]
 
 			// Pipe
 			c.hub.inbound <- ClientMessage{message: payload, client: c}
 
 			// Update offset
-			offset += messageHeaderSize + msglen
+			offset += packedMessageHeaderSize + msglen
 		}
 	}
 }

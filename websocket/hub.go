@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"encoding/binary"
 	"log"
 
 	"bitbucket.org/ashbyb/go-map-generation/protobuf"
@@ -49,11 +50,11 @@ func (h *Hub) run() {
 				close(client.outbound)
 			}
 		case message := <-h.inbound:
-			go ProcessMessage(message, h)
+			go ProcessMessage(message)
 		case message := <-h.outbound:
 			if _, exists := h.clients[message.client]; exists {
 				select {
-				case message.client.outbound <- message.message:
+				case message.client.outbound <- packMessage(message.message):
 				default:
 					log.Printf("[Client Death][%s] Buffer full", message.client.conn.RemoteAddr().String())
 					delete(h.clients, message.client)
@@ -64,10 +65,10 @@ func (h *Hub) run() {
 	}
 }
 
-func ProcessMessage(message ClientMessage, hub *Hub) {
-	wrapper := &protobuf.Message{}
+func ProcessMessage(message ClientMessage) {
 
 	// Decode message
+	wrapper := &protobuf.Message{}
 	err := proto.Unmarshal(message.message, wrapper)
 	if err != nil {
 		log.Fatal("Unmarshaling: ", err)
@@ -76,18 +77,25 @@ func ProcessMessage(message ClientMessage, hub *Hub) {
 	// Process payload
 	switch msg := wrapper.Payload.(type) {
 	case *protobuf.Message_Move:
-		handleMove(msg)
+		handleMove(msg, message.client.hub)
 	case *protobuf.Message_Attack:
-		handleAttack(msg)
+		handleAttack(msg, message.client.hub)
 	}
 }
 
-func handleMove(msg *protobuf.Message_Move) {
+func handleMove(msg *protobuf.Message_Move, hub *Hub) {
 	log.Println("Twas a Move message: ", msg.Move.Direction)
 }
 
-func handleAttack(msg *protobuf.Message_Attack) {
+func handleAttack(msg *protobuf.Message_Attack, hub *Hub) {
 	log.Println("Twas a Attack message: ", msg.Attack.Target)
+}
+
+func packMessage(msg []byte) []byte {
+	// Build a header for the outgoing message
+	messageHeader := make([]byte, packedMessageHeaderSize)
+	binary.BigEndian.PutUint16(messageHeader, uint16(len(msg)))
+	return append(messageHeader, msg...)
 }
 
 // test := &websocket.Message{
