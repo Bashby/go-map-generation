@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"encoding/binary"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -23,6 +25,9 @@ const (
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
+
+	// Size of a message header in bytes
+	messageHeaderSize = 2
 )
 
 // Package Globals
@@ -34,6 +39,14 @@ var (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+}
+
+type ClientMessage struct {
+	// The Client sending the message
+	client *Client
+
+	// The message
+	message []byte
 }
 
 // Client Message handler structure around peers and their websocket connection
@@ -75,31 +88,33 @@ func (c *Client) outboundHandler() {
 		case message, ok := <-c.outbound:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// The hub closed the channel.
+				// The hub closed our channel and wants us dead
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Printf("[Client Outbound][%s] Channel closed\n", c.conn.RemoteAddr().String())
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
+			w, err := c.conn.NextWriter(websocket.BinaryMessage)
 			if err != nil {
+				log.Printf("[Client Outbound][%s] Error opening writer: %v\n", c.conn.RemoteAddr().String(), err)
 				return
 			}
 			w.Write(message)
 
-			// Add queued chat messages to the current websocket message.
-			n := len(c.send)
+			// Add queued messages to the current websocket message
+			n := len(c.outbound)
 			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.send)
+				w.Write(<-c.outbound)
 			}
 
 			if err := w.Close(); err != nil {
+				log.Printf("[Client Outbound][%s] Error closing writer: %v\n", c.conn.RemoteAddr().String(), err)
 				return
 			}
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-				// TODO: Error here, log it
+				log.Printf("[Client Outbound][%s] Error sending ping: %v\n", c.conn.RemoteAddr().String(), err)
 				return
 			}
 		}
@@ -112,18 +127,32 @@ func (c *Client) inboundHandler() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
-	// c.conn.SetReadLimit(maxMessageSize) // TODO: Clean this up using gorilla best practice?
-	// c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	// c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-	// for {
-	// 	_, message, err := c.conn.ReadMessage()
-	// 	if err != nil {
-	// 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-	// 			log.Printf("error: %v", err)
-	// 		}
-	// 		break
-	// 	}
-	// 	message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-	// 	c.hub.inbound <- message
-	// }
+	c.conn.SetReadLimit(maxMessageSize)
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	for {
+		_, message, err := c.conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+				log.Printf("[Client Inbound][%s] Read error: %v\n", c.conn.RemoteAddr().String(), err)
+			}
+			break
+		}
+
+		// Extract messages and pipe upstream to the hub
+		offset := 0
+		for offset < len(message) {
+			// Determine location
+			msglen := int(binary.BigEndian.Uint16(message[offset : offset+messageHeaderSize]))
+
+			// Extract
+			payload := message[offset+messageHeaderSize : offset+messageHeaderSize+msglen]
+
+			// Pipe
+			c.hub.inbound <- ClientMessage{message: payload, client: c}
+
+			// Update offset
+			offset += messageHeaderSize + msglen
+		}
+	}
 }
