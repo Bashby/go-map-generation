@@ -17,11 +17,10 @@ func Serve(address string) {
 	})
 
 	// Listen
+	log.Printf("[Webserver] Serving on %s...\n", address)
 	err := http.ListenAndServe(address, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
-	} else {
-		log.Printf("[Webserver] Serving on %s...\n", address)
 	}
 }
 
@@ -35,5 +34,5 @@ func serveRoot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method Not Allowed", 405)
 		return
 	}
-	http.ServeFile(w, r, "websocket_test.html")
+	http.ServeFile(w, r, "./websocket/websocket_test.html")
 }
